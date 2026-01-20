@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: obl-digital-ftd-dashboard
+    name: obl-digital-LTV-dashboard
     env: python
     buildCommand: "pip install -r requirements.txt"
     startCommand: "gunicorn dashboard_LTV_app:server"
