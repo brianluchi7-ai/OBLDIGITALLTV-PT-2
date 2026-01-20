@@ -3,5 +3,5 @@ services:
     name: obl-digital-ftd-dashboard
     env: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn dashboard_dep_ftd_app:server"
+    startCommand: "gunicorn dashboard_LTV_app:server"
     plan: free
