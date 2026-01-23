@@ -174,6 +174,28 @@ app.layout = html.Div(
                             multi=True,
                             id="filtro-country"
                         ),
+
+                        html.H4("Team Leader (RTN)", style={"color": "#D4AF37", "marginTop": "10px"}),
+                        dcc.Dropdown(
+                            sorted(
+                                df.loc[df["deposit_type"].str.upper() == "RTN", "team"]
+                                .dropna()
+                                .unique()
+                            ),
+                            multi=True,
+                            id="filtro-team"
+                        ),
+                        
+                        html.H4("Agent (RTN)", style={"color": "#D4AF37", "marginTop": "10px"}),
+                        dcc.Dropdown(
+                            sorted(
+                                df.loc[df["deposit_type"].str.upper() == "RTN", "agent"]
+                                .dropna()
+                                .unique()
+                            ),
+                            multi=True,
+                            id="filtro-agent"
+                        ),
                     ]
                 ),
 
@@ -214,6 +236,7 @@ app.layout = html.Div(
                             columns=[
                                 {"name": "DATE", "id": "date"},
                                 {"name": "COUNTRY", "id": "country"},
+                                {"name": "TEAM LEADER", "id": "team"},
                                 {"name": "AFFILIATE", "id": "affiliate"},
                                 {"name": "SOURCE", "id": "source"},
                                 {"name": "TOTAL AMOUNT RTN", "id": "usd_total"},
@@ -259,10 +282,12 @@ app.layout = html.Div(
         Input("filtro-fecha", "end_date"),
         Input("filtro-affiliate", "value"),
         Input("filtro-source", "value"),
+        Input("filtro-team", "value"),
+        Input("filtro-agent", "value"),
         Input("filtro-country", "value"),
     ],
 )
-def actualizar_dashboard(start, end, affiliates, sources, countries):
+def actualizar_dashboard(start, end, affiliates, sources, countries, teams, agents):
 
     df_filtrado = df.copy()
 
@@ -277,21 +302,62 @@ def actualizar_dashboard(start, end, affiliates, sources, countries):
         df_filtrado = df_filtrado[df_filtrado["source"].isin(sources)]
     if countries:
         df_filtrado = df_filtrado[df_filtrado["country"].isin(countries)]
+    if teams:
+        teams = [t for t in teams if t]
+        keys_team = df_filtrado.loc[
+            df_filtrado["team"].isin(teams),
+            ["country", "affiliate", "source"]
+        ].drop_duplicates()
+    
+        df_filtrado = df_filtrado.merge(
+            keys_team,
+            on=["country", "affiliate", "source"],
+            how="inner"
+        )
+    
+    if agents:
+        agents = [a for a in agents if a]
+        keys_agent = df_filtrado.loc[
+            df_filtrado["agent"].isin(agents),
+            ["country", "affiliate", "source"]
+        ].drop_duplicates()
+    
+        df_filtrado = df_filtrado.merge(
+            keys_agent,
+            on=["country", "affiliate", "source"],
+            how="inner"
+        )
 
-    # === SOLO RTN ===
-    df_rtn = df_filtrado[df_filtrado["deposit_type"].str.upper() != "FTD"]
+    # ====================================================
+    # ✅ AJUSTE ÚNICO: FTDs CALCULADOS POR GRUPO (CORRECTO)
+    # ====================================================
+
+    df_rtn = df_filtrado[df_filtrado["deposit_type"].str.upper() != "FTD"].copy()
+    df_ftd = df_filtrado[df_filtrado["deposit_type"].str.upper() == "FTD"].copy()
 
     df_rtn["month"] = df_rtn["date"].dt.to_period("M")
+    df_ftd["month"] = df_ftd["date"].dt.to_period("M")
 
-    df_month = (
+    df_rtn_grp = (
         df_rtn
         .groupby(["month", "country", "affiliate", "source"], as_index=False)
-        .apply(lambda x: pd.Series({
-            "usd_total": x["usd_total"].sum(),
-            "count_ftd": (df_filtrado["deposit_type"].str.upper() == "FTD").sum()
-        }))
-        .reset_index(drop=True)
+        .agg({"usd_total": "sum"})
     )
+
+    df_ftd_grp = (
+        df_ftd
+        .groupby(["month", "country", "affiliate", "source"], as_index=False)
+        .size()
+        .rename(columns={"size": "count_ftd"})
+    )
+
+    df_month = df_rtn_grp.merge(
+        df_ftd_grp,
+        on=["month", "country", "affiliate", "source"],
+        how="left"
+    )
+
+    df_month["count_ftd"] = df_month["count_ftd"].fillna(0)
 
     df_month["general_ltv"] = df_month.apply(
         lambda r: r["usd_total"] / r["count_ftd"] if r["count_ftd"] > 0 else 0,
@@ -301,10 +367,12 @@ def actualizar_dashboard(start, end, affiliates, sources, countries):
     df_month["date"] = df_month["month"].dt.to_timestamp("M")
     df_month.drop(columns=["month"], inplace=True)
 
+    # ====================================================
+
     total_ftds = (df_filtrado["deposit_type"].str.upper() == "FTD").sum()
     usd_rtn = df_rtn["usd_total"].sum()
     general_ltv_total = usd_rtn / total_ftds if total_ftds > 0 else 0
-
+    
     card_style = {
         "backgroundColor": "#1a1a1a",
         "borderRadius": "10px",
@@ -470,6 +538,7 @@ app.index_string = '''
 
 if __name__ == "__main__":
     app.run_server(debug=True, port=8053)
+
 
 
 
