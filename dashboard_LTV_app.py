@@ -302,31 +302,49 @@ def actualizar_dashboard(start, end, affiliates, sources, countries, teams, agen
         df_filtrado = df_filtrado[df_filtrado["source"].isin(sources)]
     if countries:
         df_filtrado = df_filtrado[df_filtrado["country"].isin(countries)]
+   # === FILTRO POR TEAM LEADER (RTN) ===
     if teams:
         teams = [t for t in teams if t]
-        keys_team = df_filtrado.loc[
-            df_filtrado["team"].isin(teams),
-            ["country", "affiliate", "source"]
-        ].drop_duplicates()
     
-        df_filtrado = df_filtrado.merge(
-            keys_team,
-            on=["country", "affiliate", "source"],
-            how="inner"
+        rtn_keys = (
+            df_filtrado[
+                (df_filtrado["deposit_type"].str.upper() == "RTN") &
+                (df_filtrado["team"].isin(teams))
+            ][["country", "affiliate", "source"]]
+            .drop_duplicates()
         )
     
+        if not rtn_keys.empty:
+            df_filtrado = df_filtrado[
+                df_filtrado.set_index(["country", "affiliate", "source"]).index.isin(
+                    rtn_keys.set_index(["country", "affiliate", "source"]).index
+                )
+            ]
+        else:
+            df_filtrado = df_filtrado.iloc[0:0]
+    
+    
+    # === FILTRO POR AGENT (RTN) ===
     if agents:
         agents = [a for a in agents if a]
-        keys_agent = df_filtrado.loc[
-            df_filtrado["agent"].isin(agents),
-            ["country", "affiliate", "source"]
-        ].drop_duplicates()
     
-        df_filtrado = df_filtrado.merge(
-            keys_agent,
-            on=["country", "affiliate", "source"],
-            how="inner"
+        rtn_keys = (
+            df_filtrado[
+                (df_filtrado["deposit_type"].str.upper() == "RTN") &
+                (df_filtrado["agent"].isin(agents))
+            ][["country", "affiliate", "source"]]
+            .drop_duplicates()
         )
+    
+        if not rtn_keys.empty:
+            df_filtrado = df_filtrado[
+                df_filtrado.set_index(["country", "affiliate", "source"]).index.isin(
+                    rtn_keys.set_index(["country", "affiliate", "source"]).index
+                )
+            ]
+        else:
+            df_filtrado = df_filtrado.iloc[0:0]
+    
 
     # ====================================================
     # ✅ AJUSTE ÚNICO: FTDs CALCULADOS POR GRUPO (CORRECTO)
@@ -538,6 +556,7 @@ app.index_string = '''
 
 if __name__ == "__main__":
     app.run_server(debug=True, port=8053)
+
 
 
 
