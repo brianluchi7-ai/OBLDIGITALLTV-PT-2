@@ -104,7 +104,7 @@ app.layout = html.Div(
     style={"backgroundColor": "#0d0d0d", "padding": "20px"},
     children=[
 
-        html.H1("📊 DASHBOARD GENERAL LTV — RTN ONLY", style={
+        html.H1("📊 DASHBOARD RTN LTV — RTN ONLY", style={
             "textAlign": "center",
             "color": "#D4AF37",
             "marginBottom": "30px"
@@ -267,3 +267,4 @@ app.index_string = '''
 
 if __name__ == "__main__":
     app.run_server(debug=True, port=8053)
+
