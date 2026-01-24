@@ -303,46 +303,47 @@ def actualizar_dashboard(start, end, affiliates, sources, countries, teams, agen
     if countries:
         df_filtrado = df_filtrado[df_filtrado["country"].isin(countries)]
         
-   if teams:
-    teams = [t for t in teams if t]
+        # === FILTRO POR TEAM LEADER (RTN) ===
+    if teams:
+        teams = [t for t in teams if t]
 
-    rtn_keys = (
-        df_filtrado[
-            (df_filtrado["deposit_type"].str.upper() == "RTN") &
-            (df_filtrado["team"].isin(teams))
-        ][["country", "affiliate"]]
-        .drop_duplicates()
-    )
+        rtn_keys = (
+            df_filtrado[
+                (df_filtrado["deposit_type"].str.upper() == "RTN") &
+                (df_filtrado["team"].isin(teams))
+            ][["country", "affiliate"]]
+            .drop_duplicates()
+        )
 
-    if not rtn_keys.empty:
-        df_filtrado = df_filtrado[
-            df_filtrado.set_index(["country", "affiliate"]).index.isin(
-                rtn_keys.set_index(["country", "affiliate"]).index
-            )
-        ]
-    else:
-        df_filtrado = df_filtrado.iloc[0:0]
+        if not rtn_keys.empty:
+            df_filtrado = df_filtrado[
+                df_filtrado.set_index(["country", "affiliate"]).index.isin(
+                    rtn_keys.set_index(["country", "affiliate"]).index
+                )
+            ]
+        else:
+            df_filtrado = df_filtrado.iloc[0:0]
 
-    
-   if agents:
-    agents = [a for a in agents if a]
+    # === FILTRO POR AGENT (RTN) ===
+    if agents:
+        agents = [a for a in agents if a]
 
-    rtn_keys = (
-        df_filtrado[
-            (df_filtrado["deposit_type"].str.upper() == "RTN") &
-            (df_filtrado["agent"].isin(agents))
-        ][["country", "affiliate"]]
-        .drop_duplicates()
-    )
+        rtn_keys = (
+            df_filtrado[
+                (df_filtrado["deposit_type"].str.upper() == "RTN") &
+                (df_filtrado["agent"].isin(agents))
+            ][["country", "affiliate"]]
+            .drop_duplicates()
+        )
 
-    if not rtn_keys.empty:
-        df_filtrado = df_filtrado[
-            df_filtrado.set_index(["country", "affiliate"]).index.isin(
-                rtn_keys.set_index(["country", "affiliate"]).index
-            )
-        ]
-    else:
-        df_filtrado = df_filtrado.iloc[0:0]
+        if not rtn_keys.empty:
+            df_filtrado = df_filtrado[
+                df_filtrado.set_index(["country", "affiliate"]).index.isin(
+                    rtn_keys.set_index(["country", "affiliate"]).index
+                )
+            ]
+        else:
+            df_filtrado = df_filtrado.iloc[0:0]
 
 
     # ====================================================
@@ -555,6 +556,7 @@ app.index_string = '''
 
 if __name__ == "__main__":
     app.run_server(debug=True, port=8053)
+
 
 
 
